@@ -7,18 +7,19 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
 } from '@ant-design/icons'
+import {
+  exists,
+  readTextFile,
+  readDir,
+  writeTextFile,
+} from '@tauri-apps/api/fs'
+import { basename } from '@tauri-apps/api/path'
 import OptionBar from './components/OptionBar'
 import { CheckboxChangeEvent } from 'antd/lib/checkbox'
 import { SelectType } from '../../utils/enum'
 import { selectTypeOptions } from '../../utils/const'
 import { moveFiles } from '../../utils/file'
-import { IWeItem } from '@/types/weList'
-
-// const shell = require('electron').shell;
-const fs = window.__TAURI__.fs
-const pathFn = window.__TAURI__.path
-
-console.log('fs', fs)
+import { IWeItem } from '../../types/weList'
 
 const MainPage = () => {
   const [searchValue, setSearchValue] = useState('')
@@ -37,102 +38,90 @@ const MainPage = () => {
     checked: false,
   })
 
-  const searchDir = () => {
+  const searchDir = async () => {
     setSearchLoading(true)
     const path = searchValue
-    fs.exists(path, (exists: boolean) => {
-      setSearchLoading(false)
-      if (exists) {
+
+    try {
+      const isExist = await exists(path)
+
+      if (isExist) {
         loadDir(path)
       } else {
         message.error(`文件夹 ${path} 不存在`, 1)
       }
-    })
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSearchLoading(false)
+    }
   }
 
-  const readIgnoreFile = (path: string) => {
-    const data = fs.readFileSync(path)
-    setIgnoreItems(
-      data
-        .toString()
-        .split('\n')
-        .map((i) => i.trim().replace('\\r', ''))
-    )
+  const readIgnoreFile = async (path: string) => {
+    try {
+      const data = await readTextFile(path)
+      setIgnoreItems(
+        data
+          .toString()
+          .split('\n')
+          .map((i: string) => i.trim().replace('\\r', ''))
+      )
+    } catch (e) {
+      console.error('readIgnoreFile', e)
+    }
   }
 
   /**
    * 读取wallpaper存放路径
    * @param path
    */
-  const loadDir = (path) => {
+  const loadDir = async (path: string) => {
     console.log(`读取 ${path}`)
     setIgnoreFilePath(`${path}/.weignore`)
     setLoading(true)
-    const ignoreFileExist = fs.existsSync(`${path}/.weignore`)
+    const ignoreFileExist = await exists(`${path}/.weignore`)
     if (ignoreFileExist) {
       readIgnoreFile(`${path}/.weignore`)
     }
 
-    fs.readdir(path, (err, data) => {
-      if (err) {
+    const data = await readDir(path)
+
+    const promises = data.map((item) => loadWeItems(`${path}/${item}`))
+    Promise.allSettled(promises)
+      .then((data) => {
+        setWeItems(
+          data
+            .filter((item) => item.status === 'fulfilled')
+            .map((item: any) => item.value)
+        )
+      })
+      .catch((err) => {
         message.error(err)
-      } else {
-        const promises = data.map((item) => loadWeItems(`${path}/${item}`))
-        Promise.allSettled(promises)
-          .then((data) => {
-            setWeItems(
-              data
-                .filter((item) => item.status === 'fulfilled')
-                .map((item: any) => item.value)
-            )
-          })
-          .catch((err) => {
-            console.error(err)
-          })
-          .finally(() => {
-            setLoading(false)
-          })
-      }
-    })
+        console.error(err)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }
 
-  const loadWeItems = (path): Promise<IWeItem> => {
+  const loadWeItems = async (path: string): Promise<IWeItem> => {
     const settingPath = `${path}/project.json`
-    return new Promise((resolve, reject) => {
-      fs.stat(path, (err, stats) => {
-        if (err) {
-          message.error(err)
-          console.error(err)
-          reject(null)
-        } else if (stats.isDirectory()) {
-          fs.exists(settingPath, (exists) => {
-            if (!exists) {
-              reject(null)
-              return
-            }
+    return new Promise(async (resolve, reject) => {
+      if (await exists(settingPath)) {
+        const data = await readTextFile(settingPath)
 
-            fs.readFile(settingPath, (err, data) => {
-              if (err) {
-                message.error(err)
-                reject(err)
-                return
-              }
+        const key = await basename(path)
 
-              const key = pathFn.basename(path)
-
-              const json = JSON.parse(data) as any
-              resolve({
-                title: json.title,
-                key,
-                preview: `${path}/${json.preview}`,
-                fullPath: `${path}/${json.file}`,
-              })
-            })
-          })
-        } else {
-          reject(null)
-        }
-      })
+        const json = JSON.parse(data) as any
+        resolve({
+          title: json.title,
+          key,
+          preview: `${path}/${json.preview}`,
+          fullPath: `${path}/${json.file}`,
+        })
+      } else {
+        reject(null)
+      }
     })
   }
 
@@ -145,7 +134,7 @@ const MainPage = () => {
     }
   }
 
-  const renderListItem = (item) => {
+  const renderListItem = (item: IWeItem) => {
     return (
       <List.Item
         key={item.key}
@@ -189,7 +178,7 @@ const MainPage = () => {
 
   useEffect(() => {
     if (!ignoreFilePath) return
-    fs.writeFileSync(ignoreFilePath, ignoreItems.join('\n'))
+    writeTextFile(ignoreFilePath, ignoreItems.join('\n'))
   }, [ignoreItems, ignoreFilePath])
 
   const handleCheckAll = (e: CheckboxChangeEvent) => {

@@ -47,11 +47,6 @@ export const readDir = (
   if (fs.existsSync(ignorePath)) {
     ignoreArr = readIgnore(ignorePath)
   }
-  console.log(
-    ignoreArr.includes(
-      'The Witcher 3- Blood and Wine Main Menu巫师3血与酒主菜单by：SheepLoveU.mp4'
-    )
-  )
 
   const stack = [path] as any
   let res = [] as any
