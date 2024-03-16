@@ -20,6 +20,7 @@ import { SelectType } from '../../utils/enum'
 import { selectTypeOptions } from '../../utils/const'
 import { moveFiles } from '../../utils/file'
 import { IWeItem } from '../../types/weList'
+import { convertFileSrc } from '@tauri-apps/api/tauri'
 
 const MainPage = () => {
   const [searchValue, setSearchValue] = useState('')
@@ -86,14 +87,13 @@ const MainPage = () => {
 
     const data = await readDir(path)
 
-    const promises = data.map((item) => loadWeItems(`${path}/${item}`))
+    const promises = data.map((item) => loadWeItems(item.path))
     Promise.allSettled(promises)
       .then((data) => {
-        setWeItems(
-          data
-            .filter((item) => item.status === 'fulfilled')
-            .map((item: any) => item.value)
-        )
+        const items = data
+          .filter((item) => item.status === 'fulfilled')
+          .map((item: any) => item.value)
+        setWeItems(items)
       })
       .catch((err) => {
         message.error(err)
@@ -106,23 +106,24 @@ const MainPage = () => {
 
   const loadWeItems = async (path: string): Promise<IWeItem> => {
     const settingPath = `${path}/project.json`
-    return new Promise(async (resolve, reject) => {
-      if (await exists(settingPath)) {
-        const data = await readTextFile(settingPath)
 
-        const key = await basename(path)
+    const isExist = await exists(settingPath)
 
-        const json = JSON.parse(data) as any
-        resolve({
-          title: json.title,
-          key,
-          preview: `${path}/${json.preview}`,
-          fullPath: `${path}/${json.file}`,
-        })
-      } else {
-        reject(null)
+    if (isExist) {
+      const data = await readTextFile(settingPath)
+
+      const key = await basename(path)
+
+      const json = JSON.parse(data) as any
+      return {
+        title: json.title,
+        key,
+        preview: `${path}/${json.preview}`,
+        fullPath: `${path}/${json.file}`,
       }
-    })
+    }
+
+    return Promise.reject()
   }
 
   const changeIgnoreState = (item: IWeItem) => {
@@ -169,7 +170,13 @@ const MainPage = () => {
         <Checkbox value={item.key} style={{ padding: '16px' }} />
         <List.Item.Meta
           title={item.title}
-          avatar={<Image width={100} preview={false} src={item.preview} />}
+          avatar={
+            <Image
+              width={100}
+              preview={false}
+              src={convertFileSrc(item.preview)}
+            />
+          }
           description={item.fullPath}
         />
       </List.Item>
