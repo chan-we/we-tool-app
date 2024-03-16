@@ -27,6 +27,14 @@
       "protocol": {
         "asset": true,
         "assetScope": ["**"]
+      },
+      "dialog": {
+        "all": false,
+        "ask": false,
+        "confirm": false,
+        "message": false,
+        "open": true,
+        "save": false
       }
     },
     "windows": [

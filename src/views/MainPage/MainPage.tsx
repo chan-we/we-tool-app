@@ -1,5 +1,5 @@
 import { Input, Button, List, message, Image, Checkbox, Select } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './index.less'
 import {
   DeleteOutlined,
@@ -21,9 +21,11 @@ import { selectTypeOptions } from '../../utils/const'
 import { moveFiles } from '../../utils/file'
 import { IWeItem } from '../../types/weList'
 import { convertFileSrc } from '@tauri-apps/api/tauri'
+import { open } from '@tauri-apps/api/dialog'
 
 const MainPage = () => {
-  const [searchValue, setSearchValue] = useState('')
+  const searchDirPath = useRef('')
+  // const [searchValue, setSearchValue] = useState('')
   const [searchLoading, setSearchLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [weItems, setWeItems] = useState<IWeItem[]>([])
@@ -41,7 +43,7 @@ const MainPage = () => {
 
   const searchDir = async () => {
     setSearchLoading(true)
-    const path = searchValue
+    const path = searchDirPath.current as string
 
     try {
       const isExist = await exists(path)
@@ -223,6 +225,20 @@ const MainPage = () => {
     )
   }
 
+  const selectWEFolder = async () => {
+    const data = await open({
+      directory: true,
+    })
+
+    console.log(data)
+    // setSearchValue(data as string)
+    searchDirPath.current = data as string
+
+    setTimeout(() => {
+      searchDir()
+    }, 0)
+  }
+
   return (
     <div className='main-page'>
       <Input.Group compact className='main-page-input'>
@@ -231,12 +247,14 @@ const MainPage = () => {
           style={{ width: 'calc(100% - 200px)' }}
           placeholder={'请输入文件夹路径'}
           onChange={(e) => {
-            setSearchValue(e.target.value)
+            searchDirPath.current = e.target.value
           }}
+          value={searchDirPath.current}
         />
         <Button type='primary' onClick={searchDir} loading={searchLoading}>
           搜索
         </Button>
+        <Button icon={<FolderOpenOutlined />} onClick={selectWEFolder} />,
       </Input.Group>
       <OptionBar />
       <div>共{weItems.length}项</div>
