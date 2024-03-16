@@ -66,7 +66,7 @@ const MainPage = () => {
       setIgnoreItems(
         data
           .toString()
-          .split('\n')
+          .split(',')
           .map((i: string) => i.trim().replace('\\r', ''))
       )
     } catch (e) {
@@ -80,11 +80,11 @@ const MainPage = () => {
    */
   const loadDir = async (path: string) => {
     console.log(`读取 ${path}`)
-    setIgnoreFilePath(`${path}/.weignore`)
+    const iPath = `${path}/.weignore`
+    setIgnoreFilePath(iPath)
     setLoading(true)
-    const ignoreFileExist = await exists(`${path}/.weignore`)
-    if (ignoreFileExist) {
-      readIgnoreFile(`${path}/.weignore`)
+    if (await exists(iPath)) {
+      readIgnoreFile(iPath)
     }
 
     const data = await readDir(path)
@@ -130,10 +130,21 @@ const MainPage = () => {
 
   const changeIgnoreState = (item: IWeItem) => {
     const { key } = item
-    if (ignoreItems.includes(key)) {
-      setIgnoreItems(ignoreItems.filter((i) => i !== key))
+
+    let items = ignoreItems
+
+    if (items.includes(key)) {
+      items = ignoreItems.filter((i) => i !== key)
     } else {
-      setIgnoreItems(ignoreItems.concat(key))
+      items = ignoreItems.concat(key)
+    }
+
+    setIgnoreItems(items)
+
+    if (ignoreFilePath) {
+      setTimeout(() => {
+        writeTextFile(ignoreFilePath, items.join(','))
+      }, 0)
     }
   }
 
@@ -184,11 +195,6 @@ const MainPage = () => {
       </List.Item>
     )
   }
-
-  useEffect(() => {
-    if (!ignoreFilePath) return
-    writeTextFile(ignoreFilePath, ignoreItems.join('\n'))
-  }, [ignoreItems, ignoreFilePath])
 
   const handleCheckAll = (e: CheckboxChangeEvent) => {
     if (e.target.checked) {
