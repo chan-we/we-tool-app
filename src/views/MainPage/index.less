@@ -1,0 +1,19 @@
+.main-page {
+  &-input {
+    width: 80%;
+    margin: 10px auto;
+  }
+
+  &-weitem {
+    .ant-image {
+      cursor: pointer;
+    }
+    &-ignore {
+      background-color: lightgrey;
+      > .ant-list-item-meta {
+        filter: progid:DXImageTransform.Microsoft.BasicImage(grayscale=1);
+        -webkit-filter: grayscale(100%);
+      }
+    }
+  }
+}
