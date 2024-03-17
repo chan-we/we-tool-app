@@ -20,13 +20,15 @@ import { SelectType } from '../../utils/enum'
 import { selectTypeOptions } from '../../utils/const'
 import { moveFiles } from '../../utils/file'
 import { IWeItem } from '../../types/weList'
+import { GlobalOptionKey } from '../../utils/enum'
 import { convertFileSrc } from '@tauri-apps/api/tauri'
 import { open } from '@tauri-apps/api/dialog'
 import { WebviewWindow } from '@tauri-apps/api/window'
+import { useSelector } from 'react-redux'
 
 const MainPage = () => {
   const searchDirPath = useRef('')
-  // const [searchValue, setSearchValue] = useState('')
+
   const [searchLoading, setSearchLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [weItems, setWeItems] = useState<IWeItem[]>([])
@@ -41,6 +43,8 @@ const MainPage = () => {
     indeterminate: false,
     checked: false,
   })
+
+  const globalOption = useSelector((state: any) => state.globalOption.value)
 
   const searchDir = async () => {
     setSearchLoading(true)
@@ -121,8 +125,8 @@ const MainPage = () => {
       return {
         title: json.title,
         key,
-        preview: `${path}/${json.preview}`,
-        fullPath: `${path}/${json.file}`,
+        preview: `${path}\\${json.preview}`,
+        fullPath: `${path}\\${json.file}`,
       }
     }
 
@@ -166,23 +170,22 @@ const MainPage = () => {
   }
 
   const renderListItem = (item: IWeItem) => {
+    const ignored = ignoreItems.includes(item.key)
+    if (ignored && globalOption[GlobalOptionKey.HideIgnore]) {
+      return <></>
+    }
+
     return (
       <List.Item
         key={item.key}
         className={[
           'main-page-weitem',
-          ignoreItems.includes(item.key) ? 'main-page-weitem-ignore' : '',
+          ignored ? 'main-page-weitem-ignore' : '',
         ].join(' ')}
         actions={[
           <Button icon={<FolderOpenOutlined />} shape='circle' />,
           <Button
-            icon={
-              ignoreItems.includes(item.key) ? (
-                <EyeOutlined />
-              ) : (
-                <EyeInvisibleOutlined />
-              )
-            }
+            icon={ignored ? <EyeOutlined /> : <EyeInvisibleOutlined />}
             shape='circle'
             onClick={() => {
               changeIgnoreState(item)
