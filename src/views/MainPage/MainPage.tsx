@@ -22,6 +22,7 @@ import { moveFiles } from '../../utils/file'
 import { IWeItem } from '../../types/weList'
 import { convertFileSrc } from '@tauri-apps/api/tauri'
 import { open } from '@tauri-apps/api/dialog'
+import { WebviewWindow } from '@tauri-apps/api/window'
 
 const MainPage = () => {
   const searchDirPath = useRef('')
@@ -148,6 +149,21 @@ const MainPage = () => {
     }
   }
 
+  const openVideo = async (path: string) => {
+    console.log('open video', path)
+    // shellOpen(path)
+    const webview = new WebviewWindow('video', {
+      url: '/video',
+    })
+
+    webview.once('tauri://created', function () {
+      console.log('created')
+    })
+    webview.once('tauri://error', function (e: any) {
+      console.error('error', e)
+    })
+  }
+
   const renderListItem = (item: IWeItem) => {
     return (
       <List.Item
@@ -188,6 +204,7 @@ const MainPage = () => {
               width={100}
               preview={false}
               src={convertFileSrc(item.preview)}
+              onClick={() => openVideo(item.fullPath as string)}
             />
           }
           description={item.fullPath}
