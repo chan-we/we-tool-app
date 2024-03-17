@@ -1,7 +1,7 @@
 import { Switch } from 'antd'
-import { GlobalOptionKey } from '../../../../utils/enum'
+import { GlobalOptionKey } from '@/utils/enum'
 import { useDispatch } from 'react-redux'
-import { setGlobalOption } from '../../../../store/slice/globalOptionSlice'
+import { setGlobalOption } from '@/store/slice/globalOptionSlice'
 
 const OptionBar = () => {
   const dispatch = useDispatch()
