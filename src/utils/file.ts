@@ -25,7 +25,6 @@ export const moveFiles = async (targetPath: string, files: Array<string>) => {
     console.log(`${targetPath}不存在，已新建`)
   }
 
-  let count = 0
   files.forEach(async (file) => {
     let newName = await basename(file)
     const jsonPath = `${await dirname(file)}/project.json`
