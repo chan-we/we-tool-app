@@ -153,7 +153,8 @@ const MainPage = () => {
     console.log('open video', path)
     // shellOpen(path)
     const webview = new WebviewWindow('video', {
-      url: '/video',
+      url: `/video?path=${path}`,
+      maximized: true,
     })
 
     webview.once('tauri://created', function () {
