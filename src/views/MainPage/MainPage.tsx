@@ -1,4 +1,13 @@
-import { Input, Button, List, message, Image, Checkbox, Select } from 'antd'
+import {
+  Input,
+  Button,
+  List,
+  message,
+  Image,
+  Checkbox,
+  Select,
+  Popconfirm,
+} from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import './index.less'
 import {
@@ -12,6 +21,7 @@ import {
   readTextFile,
   readDir,
   writeTextFile,
+  removeDir,
 } from '@tauri-apps/api/fs'
 import { basename } from '@tauri-apps/api/path'
 import OptionBar from './components/OptionBar'
@@ -125,6 +135,7 @@ const MainPage = () => {
         title: json.title,
         key,
         preview: `${path}\\${json.preview}`,
+        folderPath: path,
         fullPath: `${path}\\${json.file}`,
       }
     }
@@ -168,6 +179,17 @@ const MainPage = () => {
     })
   }
 
+  const handleRemoveDir = (path: string) => {
+    return removeDir(path, { recursive: true })
+      .then(() => {
+        message.success('删除成功')
+        searchDir();
+      })
+      .catch((e) => {
+        message.error(e.message)
+      })
+  }
+
   const renderListItem = (item: IWeItem) => {
     const ignored = ignoreItems.includes(item.key)
     if (ignored && globalOption[GlobalOptionKey.HideIgnore]) {
@@ -190,13 +212,18 @@ const MainPage = () => {
               changeIgnoreState(item)
             }}
           />,
-          <Button
-            className='main-page-weitem-delete'
-            icon={<DeleteOutlined />}
-            shape='circle'
-            type='primary'
-            danger
-          />,
+          <Popconfirm
+            title='确定删除？'
+            onConfirm={() => handleRemoveDir(item.folderPath as string)}
+          >
+            <Button
+              className='main-page-weitem-delete'
+              icon={<DeleteOutlined />}
+              shape='circle'
+              type='primary'
+              danger
+            />
+          </Popconfirm>,
         ]}
       >
         <Checkbox value={item.key} style={{ padding: '16px' }} />
