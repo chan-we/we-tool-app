@@ -312,6 +312,7 @@ const MainPage = () => {
           dataSource={weItems}
           renderItem={renderListItem}
           loading={loading}
+          style={{ width: '100%' }}
         />
       </Checkbox.Group>
     </div>
