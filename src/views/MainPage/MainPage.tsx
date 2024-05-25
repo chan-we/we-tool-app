@@ -183,7 +183,7 @@ const MainPage = () => {
     return removeDir(path, { recursive: true })
       .then(() => {
         message.success('删除成功')
-        searchDir();
+        searchDir()
       })
       .catch((e) => {
         message.error(e.message)
@@ -265,17 +265,30 @@ const MainPage = () => {
         checkedItems.length > 0 && remainItems.length > checkedItems.length,
       checked: remainItems.length === checkedItems.length,
     })
-  }, [checkedItems, weItems, ignoreItems])
+  }, [checkedItems, weItems, ignoreItems, selectType])
 
-  useEffect(() => {
-    console.log(checkedItems)
-  }, [checkedItems])
+  const handleMove = async () => {
+    const path = await open({ directory: true })
 
-  const handleMove = () => {
-    moveFiles(
-      'D:\\my_file\\mmd',
-      checkedItems.map((i) => i.fullPath!)
-    )
+    console.log(path)
+    if (path) {
+      // console.log(checkedItems);
+      message.loading('移动中', 0)
+      moveFiles(
+        path as string,
+        checkedItems.map((i) => i.fullPath as string)
+      )
+        .then(() => {
+          message.destroy()
+          message.success('移动完成')
+          console.log('移动完成')
+        })
+        .catch((e) => {
+          console.error(e.message);
+          message.destroy()
+          message.error('移动失败');
+        })
+    }
   }
 
   const selectWEFolder = async () => {

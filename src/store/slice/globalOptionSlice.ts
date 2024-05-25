@@ -1,9 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { GlobalOptionKey } from '@/utils/enum'
 
 export const globalOptionSlice = createSlice({
   name: 'globalOption',
   initialState: {
-    value: {},
+    value: {
+      [GlobalOptionKey.HideIgnore]: true,
+    },
   },
   reducers: {
     setGlobalOption(state, action) {

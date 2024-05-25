@@ -1,10 +1,12 @@
 import { Switch } from 'antd'
 import { GlobalOptionKey } from '@/utils/enum'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { setGlobalOption } from '@/store/slice/globalOptionSlice'
 
 const OptionBar = () => {
   const dispatch = useDispatch()
+  const globalOption = useSelector((state: any) => state.globalOption.value)
+
 
   const setHideIgnore = (checked: boolean) => {
     dispatch(
@@ -16,7 +18,7 @@ const OptionBar = () => {
 
   return (
     <div>
-      <Switch onChange={setHideIgnore}></Switch>隐藏忽略
+      <Switch onChange={setHideIgnore} defaultChecked={globalOption[GlobalOptionKey.HideIgnore]}></Switch>隐藏忽略
     </div>
   )
 }
