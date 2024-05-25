@@ -176,6 +176,11 @@ const MainPage = () => {
     })
   }
 
+  /**
+   * 删除单个项目
+   * @param path
+   * @returns
+   */
   const handleRemoveDir = (path: string) => {
     return removeDir(path, { recursive: true })
       .then(() => {
@@ -269,7 +274,10 @@ const MainPage = () => {
     })
   }, [checkedItems, weItems, ignoreItems, selectType])
 
-  const handleMove = async () => {
+  /**
+   * 批量移动
+   */
+  const handleBatchMove = async () => {
     const path = await open({ directory: true })
 
     if (path) {
@@ -292,6 +300,30 @@ const MainPage = () => {
     }
   }
 
+  /**
+   * 批量删除
+   */
+  const handleBatchDelete = () => {
+    const promises = checkedItems.map((i) =>
+      removeDir(i.folderPath as string, { recursive: true })
+    )
+
+    message.loading('删除中', 0)
+
+    Promise.allSettled(promises)
+      .then(() => {
+        message.destroy()
+        message.success('删除成功')
+      })
+      .catch((e) => {
+        message.destroy()
+        message.error(e.message)
+      })
+      .finally(() => {
+        searchDir()
+      })
+  }
+
   return (
     <div className='main-page'>
       <SearchBar onChange={handleSearchChange} />
@@ -311,7 +343,28 @@ const MainPage = () => {
           }}
           style={{ width: '150px' }}
         />
-        <Button onClick={handleMove}>移动</Button>
+        {checkedItems?.length ? (
+          <>
+            <Button onClick={handleBatchMove} type='primary' ghost>
+              批量移动
+            </Button>
+            <Popconfirm
+              title={
+                <span>
+                  确定删除共
+                  <span style={{ color: 'red', fontWeight: 'bold' }}>
+                    {checkedItems.length}
+                  </span>
+                  项订阅？
+                </span>
+              }
+              onConfirm={handleBatchDelete}
+              okButtonProps={{ danger: true }}
+            >
+              <Button danger>批量删除</Button>
+            </Popconfirm>
+          </>
+        ) : null}
       </div>
       <Checkbox.Group
         onChange={(v) => {
