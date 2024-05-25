@@ -24,7 +24,6 @@ import {
   removeDir,
 } from '@tauri-apps/api/fs'
 import { basename } from '@tauri-apps/api/path'
-import OptionBar from './components/OptionBar'
 import { CheckboxChangeEvent } from 'antd/lib/checkbox'
 import { SelectType, GlobalOptionKey } from '@/utils/enum'
 import { selectTypeOptions } from '@/utils/const'
@@ -34,11 +33,12 @@ import { convertFileSrc } from '@tauri-apps/api/tauri'
 import { open } from '@tauri-apps/api/dialog'
 import { WebviewWindow } from '@tauri-apps/api/window'
 import { useSelector } from 'react-redux'
+import OptionBar from './components/OptionBar'
+import SearchBar from './components/SearchBar'
 
 const MainPage = () => {
-  const searchDirPath = useRef('')
-
-  const [searchLoading, setSearchLoading] = useState(false)
+  // const searchDirPath = useRef('')
+  const [searchDirPath, setSearchDirPath] = useState('')
   const [loading, setLoading] = useState(false)
   const [weItems, setWeItems] = useState<IWeItem[]>([])
   const [ignoreFilePath, setIgnoreFilePath] = useState<string>()
@@ -55,22 +55,19 @@ const MainPage = () => {
 
   const globalOption = useSelector((state: any) => state.globalOption.value)
 
-  const searchDir = async () => {
-    setSearchLoading(true)
-    const path = searchDirPath.current as string
+  const searchDir = async (path?: string) => {
+    const dir = path || searchDirPath
 
     try {
-      const isExist = await exists(path)
+      const isExist = await exists(dir)
 
       if (isExist) {
-        loadDir(path)
+        loadDir(dir)
       } else {
         message.error(`文件夹 ${path} 不存在`, 1)
       }
     } catch (e) {
       console.error(e)
-    } finally {
-      setSearchLoading(false)
     }
   }
 
@@ -179,15 +176,25 @@ const MainPage = () => {
     })
   }
 
+  /**
+   * 删除单个项目
+   * @param path
+   * @returns
+   */
   const handleRemoveDir = (path: string) => {
     return removeDir(path, { recursive: true })
       .then(() => {
         message.success('删除成功')
-        searchDir();
+        searchDir()
       })
       .catch((e) => {
         message.error(e.message)
       })
+  }
+
+  const handleSearchChange = (path: string) => {
+    searchDir(path)
+    setSearchDirPath(path)
   }
 
   const renderListItem = (item: IWeItem) => {
@@ -265,50 +272,61 @@ const MainPage = () => {
         checkedItems.length > 0 && remainItems.length > checkedItems.length,
       checked: remainItems.length === checkedItems.length,
     })
-  }, [checkedItems, weItems, ignoreItems])
+  }, [checkedItems, weItems, ignoreItems, selectType])
 
-  useEffect(() => {
-    console.log(checkedItems)
-  }, [checkedItems])
+  /**
+   * 批量移动
+   */
+  const handleBatchMove = async () => {
+    const path = await open({ directory: true })
 
-  const handleMove = () => {
-    moveFiles(
-      'D:\\my_file\\mmd',
-      checkedItems.map((i) => i.fullPath!)
-    )
+    if (path) {
+      // console.log(checkedItems);
+      message.loading('移动中', 0)
+      moveFiles(
+        path as string,
+        checkedItems.map((i) => i.fullPath as string)
+      )
+        .then(() => {
+          message.destroy()
+          message.success('移动完成')
+          console.log('移动完成')
+        })
+        .catch((e) => {
+          console.error(e.message)
+          message.destroy()
+          message.error('移动失败')
+        })
+    }
   }
 
-  const selectWEFolder = async () => {
-    const data = await open({
-      directory: true,
-    })
+  /**
+   * 批量删除
+   */
+  const handleBatchDelete = () => {
+    const promises = checkedItems.map((i) =>
+      removeDir(i.folderPath as string, { recursive: true })
+    )
 
-    console.log(data)
-    // setSearchValue(data as string)
-    searchDirPath.current = data as string
+    message.loading('删除中', 0)
 
-    setTimeout(() => {
-      searchDir()
-    }, 0)
+    Promise.allSettled(promises)
+      .then(() => {
+        message.destroy()
+        message.success('删除成功')
+      })
+      .catch((e) => {
+        message.destroy()
+        message.error(e.message)
+      })
+      .finally(() => {
+        searchDir()
+      })
   }
 
   return (
     <div className='main-page'>
-      <Input.Group compact className='main-page-input'>
-        <Input
-          type='text'
-          style={{ width: 'calc(100% - 200px)' }}
-          placeholder={'请输入文件夹路径'}
-          onChange={(e) => {
-            searchDirPath.current = e.target.value
-          }}
-          value={searchDirPath.current}
-        />
-        <Button type='primary' onClick={searchDir} loading={searchLoading}>
-          搜索
-        </Button>
-        <Button icon={<FolderOpenOutlined />} onClick={selectWEFolder} />,
-      </Input.Group>
+      <SearchBar onChange={handleSearchChange} />
       <OptionBar />
       <div>共{weItems.length}项</div>
       <div className='main-page-select'>
@@ -325,7 +343,28 @@ const MainPage = () => {
           }}
           style={{ width: '150px' }}
         />
-        <Button onClick={handleMove}>移动</Button>
+        {checkedItems?.length ? (
+          <>
+            <Button onClick={handleBatchMove} type='primary' ghost>
+              批量移动
+            </Button>
+            <Popconfirm
+              title={
+                <span>
+                  确定删除共
+                  <span style={{ color: 'red', fontWeight: 'bold' }}>
+                    {checkedItems.length}
+                  </span>
+                  项订阅？
+                </span>
+              }
+              onConfirm={handleBatchDelete}
+              okButtonProps={{ danger: true }}
+            >
+              <Button danger>批量删除</Button>
+            </Popconfirm>
+          </>
+        ) : null}
       </div>
       <Checkbox.Group
         onChange={(v) => {

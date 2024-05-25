@@ -17,23 +17,28 @@ const readJson = async (path: string) => {
   return JSON.parse(data)
 }
 
-export const moveFiles = async (targetPath: string, files: Array<string>) => {
-  if (await exists(targetPath)) {
-    console.log(`${targetPath}存在`)
-  } else {
-    mkdirsSync(targetPath)
-    console.log(`${targetPath}不存在，已新建`)
-  }
+export const moveFiles = (targetPath: string, files: Array<string>) => {
+  const promises = files.map(
+    (file) =>
+      new Promise(async (resolve, reject) => {
+        let newName = await basename(file)
+        const jsonPath = `${await dirname(file)}/project.json`
+        if (await exists(jsonPath)) {
+          const json = await readJson(jsonPath)
+          if (json.title && !/[\\\/\:\*\?\"<>\|]+/g.test(json.title)) {
+            newName = json.title
+          }
+        }
+        // debugger;
+        copyFile(file, `${targetPath}\\${newName}.${await extname(file)}`)
+          .then(() => {
+            resolve(true)
+          })
+          .catch(() => {
+            reject()
+          })
+      })
+  )
 
-  files.forEach(async (file) => {
-    let newName = await basename(file)
-    const jsonPath = `${await dirname(file)}/project.json`
-    if (await exists(jsonPath)) {
-      const json = await readJson(jsonPath)
-      if (json.title && !/[\\\/\:\*\?\"<>\|]+/g.test(json.title)) {
-        newName = json.title
-      }
-    }
-    copyFile(file, `${targetPath}\\${newName}${await extname(file)}`)
-  })
+  return Promise.allSettled(promises)
 }
