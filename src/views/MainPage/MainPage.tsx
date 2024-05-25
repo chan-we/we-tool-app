@@ -1,5 +1,14 @@
-import { Input, Button, List, message, Image, Checkbox, Select } from 'antd'
-import { useEffect, useState } from 'react'
+import {
+  Input,
+  Button,
+  List,
+  message,
+  Image,
+  Checkbox,
+  Select,
+  Popconfirm,
+} from 'antd'
+import { useEffect, useRef, useState } from 'react'
 import './index.less'
 import {
   DeleteOutlined,
@@ -12,18 +21,23 @@ import {
   readTextFile,
   readDir,
   writeTextFile,
+  removeDir,
 } from '@tauri-apps/api/fs'
 import { basename } from '@tauri-apps/api/path'
 import OptionBar from './components/OptionBar'
 import { CheckboxChangeEvent } from 'antd/lib/checkbox'
-import { SelectType } from '../../utils/enum'
-import { selectTypeOptions } from '../../utils/const'
-import { moveFiles } from '../../utils/file'
-import { IWeItem } from '../../types/weList'
+import { SelectType, GlobalOptionKey } from '@/utils/enum'
+import { selectTypeOptions } from '@/utils/const'
+import { moveFiles } from '@/utils/file'
+import { IWeItem } from '@/types/weList'
 import { convertFileSrc } from '@tauri-apps/api/tauri'
+import { open } from '@tauri-apps/api/dialog'
+import { WebviewWindow } from '@tauri-apps/api/window'
+import { useSelector } from 'react-redux'
 
 const MainPage = () => {
-  const [searchValue, setSearchValue] = useState('')
+  const searchDirPath = useRef('')
+
   const [searchLoading, setSearchLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [weItems, setWeItems] = useState<IWeItem[]>([])
@@ -39,9 +53,11 @@ const MainPage = () => {
     checked: false,
   })
 
+  const globalOption = useSelector((state: any) => state.globalOption.value)
+
   const searchDir = async () => {
     setSearchLoading(true)
-    const path = searchValue
+    const path = searchDirPath.current as string
 
     try {
       const isExist = await exists(path)
@@ -64,7 +80,7 @@ const MainPage = () => {
       setIgnoreItems(
         data
           .toString()
-          .split('\n')
+          .split(',')
           .map((i: string) => i.trim().replace('\\r', ''))
       )
     } catch (e) {
@@ -78,11 +94,11 @@ const MainPage = () => {
    */
   const loadDir = async (path: string) => {
     console.log(`读取 ${path}`)
-    setIgnoreFilePath(`${path}/.weignore`)
+    const iPath = `${path}/.weignore`
+    setIgnoreFilePath(iPath)
     setLoading(true)
-    const ignoreFileExist = await exists(`${path}/.weignore`)
-    if (ignoreFileExist) {
-      readIgnoreFile(`${path}/.weignore`)
+    if (await exists(iPath)) {
+      readIgnoreFile(iPath)
     }
 
     const data = await readDir(path)
@@ -118,8 +134,9 @@ const MainPage = () => {
       return {
         title: json.title,
         key,
-        preview: `${path}/${json.preview}`,
-        fullPath: `${path}/${json.file}`,
+        preview: `${path}\\${json.preview}`,
+        folderPath: path,
+        fullPath: `${path}\\${json.file}`,
       }
     }
 
@@ -128,43 +145,85 @@ const MainPage = () => {
 
   const changeIgnoreState = (item: IWeItem) => {
     const { key } = item
-    if (ignoreItems.includes(key)) {
-      setIgnoreItems(ignoreItems.filter((i) => i !== key))
+
+    let items = ignoreItems
+
+    if (items.includes(key)) {
+      items = ignoreItems.filter((i) => i !== key)
     } else {
-      setIgnoreItems(ignoreItems.concat(key))
+      items = ignoreItems.concat(key)
+    }
+
+    setIgnoreItems(items)
+
+    if (ignoreFilePath) {
+      setTimeout(() => {
+        writeTextFile(ignoreFilePath, items.join(','))
+      }, 0)
     }
   }
 
+  const openVideo = async (path: string) => {
+    console.log('open video', path)
+    // shellOpen(path)
+    const webview = new WebviewWindow('video', {
+      url: `/video?path=${path}`,
+      maximized: true,
+    })
+
+    webview.once('tauri://created', function () {
+      console.log('created')
+    })
+    webview.once('tauri://error', function (e: any) {
+      console.error('error', e)
+    })
+  }
+
+  const handleRemoveDir = (path: string) => {
+    return removeDir(path, { recursive: true })
+      .then(() => {
+        message.success('删除成功')
+        searchDir();
+      })
+      .catch((e) => {
+        message.error(e.message)
+      })
+  }
+
   const renderListItem = (item: IWeItem) => {
+    const ignored = ignoreItems.includes(item.key)
+    if (ignored && globalOption[GlobalOptionKey.HideIgnore]) {
+      return <></>
+    }
+
     return (
       <List.Item
         key={item.key}
         className={[
           'main-page-weitem',
-          ignoreItems.includes(item.key) ? 'main-page-weitem-ignore' : '',
+          ignored ? 'main-page-weitem-ignore' : '',
         ].join(' ')}
         actions={[
           <Button icon={<FolderOpenOutlined />} shape='circle' />,
           <Button
-            icon={
-              ignoreItems.includes(item.key) ? (
-                <EyeOutlined />
-              ) : (
-                <EyeInvisibleOutlined />
-              )
-            }
+            icon={ignored ? <EyeOutlined /> : <EyeInvisibleOutlined />}
             shape='circle'
             onClick={() => {
               changeIgnoreState(item)
             }}
           />,
-          <Button
-            className='main-page-weitem-delete'
-            icon={<DeleteOutlined />}
-            shape='circle'
-            type='primary'
-            danger
-          />,
+          <Popconfirm
+            title='确定删除？'
+            onConfirm={() => handleRemoveDir(item.folderPath as string)}
+          >
+            <Button
+              className='main-page-weitem-delete'
+              icon={<DeleteOutlined />}
+              shape='circle'
+              type='primary'
+              danger
+            />
+          </Popconfirm>,
         ]}
       >
         <Checkbox value={item.key} style={{ padding: '16px' }} />
@@ -175,6 +234,7 @@ const MainPage = () => {
               width={100}
               preview={false}
               src={convertFileSrc(item.preview)}
+              onClick={() => openVideo(item.fullPath as string)}
             />
           }
           description={item.fullPath}
@@ -182,11 +242,6 @@ const MainPage = () => {
       </List.Item>
     )
   }
-
-  useEffect(() => {
-    if (!ignoreFilePath) return
-    writeTextFile(ignoreFilePath, ignoreItems.join('\n'))
-  }, [ignoreItems, ignoreFilePath])
 
   const handleCheckAll = (e: CheckboxChangeEvent) => {
     if (e.target.checked) {
@@ -223,6 +278,20 @@ const MainPage = () => {
     )
   }
 
+  const selectWEFolder = async () => {
+    const data = await open({
+      directory: true,
+    })
+
+    console.log(data)
+    // setSearchValue(data as string)
+    searchDirPath.current = data as string
+
+    setTimeout(() => {
+      searchDir()
+    }, 0)
+  }
+
   return (
     <div className='main-page'>
       <Input.Group compact className='main-page-input'>
@@ -231,12 +300,14 @@ const MainPage = () => {
           style={{ width: 'calc(100% - 200px)' }}
           placeholder={'请输入文件夹路径'}
           onChange={(e) => {
-            setSearchValue(e.target.value)
+            searchDirPath.current = e.target.value
           }}
+          value={searchDirPath.current}
         />
         <Button type='primary' onClick={searchDir} loading={searchLoading}>
           搜索
         </Button>
+        <Button icon={<FolderOpenOutlined />} onClick={selectWEFolder} />,
       </Input.Group>
       <OptionBar />
       <div>共{weItems.length}项</div>
@@ -268,6 +339,7 @@ const MainPage = () => {
           dataSource={weItems}
           renderItem={renderListItem}
           loading={loading}
+          style={{ width: '100%' }}
         />
       </Checkbox.Group>
     </div>

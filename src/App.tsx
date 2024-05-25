@@ -1,10 +1,11 @@
 import './App.less'
-import MainPage from './views/MainPage/MainPage'
+import { RouterProvider } from 'react-router-dom'
+import { router } from './router'
 
 function App() {
   return (
     <div>
-      <MainPage />
+      <RouterProvider router={router} />
     </div>
   )
 }
