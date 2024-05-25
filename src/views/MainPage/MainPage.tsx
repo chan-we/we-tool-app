@@ -24,7 +24,6 @@ import {
   removeDir,
 } from '@tauri-apps/api/fs'
 import { basename } from '@tauri-apps/api/path'
-import OptionBar from './components/OptionBar'
 import { CheckboxChangeEvent } from 'antd/lib/checkbox'
 import { SelectType, GlobalOptionKey } from '@/utils/enum'
 import { selectTypeOptions } from '@/utils/const'
@@ -34,11 +33,12 @@ import { convertFileSrc } from '@tauri-apps/api/tauri'
 import { open } from '@tauri-apps/api/dialog'
 import { WebviewWindow } from '@tauri-apps/api/window'
 import { useSelector } from 'react-redux'
+import OptionBar from './components/OptionBar'
+import SearchBar from './components/SearchBar'
 
 const MainPage = () => {
-  const searchDirPath = useRef('')
-
-  const [searchLoading, setSearchLoading] = useState(false)
+  // const searchDirPath = useRef('')
+  const [searchDirPath, setSearchDirPath] = useState('')
   const [loading, setLoading] = useState(false)
   const [weItems, setWeItems] = useState<IWeItem[]>([])
   const [ignoreFilePath, setIgnoreFilePath] = useState<string>()
@@ -55,22 +55,19 @@ const MainPage = () => {
 
   const globalOption = useSelector((state: any) => state.globalOption.value)
 
-  const searchDir = async () => {
-    setSearchLoading(true)
-    const path = searchDirPath.current as string
+  const searchDir = async (path?: string) => {
+    const dir = path || searchDirPath
 
     try {
-      const isExist = await exists(path)
+      const isExist = await exists(dir)
 
       if (isExist) {
-        loadDir(path)
+        loadDir(dir)
       } else {
         message.error(`文件夹 ${path} 不存在`, 1)
       }
     } catch (e) {
       console.error(e)
-    } finally {
-      setSearchLoading(false)
     }
   }
 
@@ -190,6 +187,11 @@ const MainPage = () => {
       })
   }
 
+  const handleSearchChange = (path: string) => {
+    searchDir(path)
+    setSearchDirPath(path)
+  }
+
   const renderListItem = (item: IWeItem) => {
     const ignored = ignoreItems.includes(item.key)
     if (ignored && globalOption[GlobalOptionKey.HideIgnore]) {
@@ -270,7 +272,6 @@ const MainPage = () => {
   const handleMove = async () => {
     const path = await open({ directory: true })
 
-    console.log(path)
     if (path) {
       // console.log(checkedItems);
       message.loading('移动中', 0)
@@ -284,44 +285,16 @@ const MainPage = () => {
           console.log('移动完成')
         })
         .catch((e) => {
-          console.error(e.message);
+          console.error(e.message)
           message.destroy()
-          message.error('移动失败');
+          message.error('移动失败')
         })
     }
   }
 
-  const selectWEFolder = async () => {
-    const data = await open({
-      directory: true,
-    })
-
-    console.log(data)
-    // setSearchValue(data as string)
-    searchDirPath.current = data as string
-
-    setTimeout(() => {
-      searchDir()
-    }, 0)
-  }
-
   return (
     <div className='main-page'>
-      <Input.Group compact className='main-page-input'>
-        <Input
-          type='text'
-          style={{ width: 'calc(100% - 200px)' }}
-          placeholder={'请输入文件夹路径'}
-          onChange={(e) => {
-            searchDirPath.current = e.target.value
-          }}
-          value={searchDirPath.current}
-        />
-        <Button type='primary' onClick={searchDir} loading={searchLoading}>
-          搜索
-        </Button>
-        <Button icon={<FolderOpenOutlined />} onClick={selectWEFolder} />,
-      </Input.Group>
+      <SearchBar onChange={handleSearchChange} />
       <OptionBar />
       <div>共{weItems.length}项</div>
       <div className='main-page-select'>
