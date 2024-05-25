@@ -1,5 +1,4 @@
 import {
-  Input,
   Button,
   List,
   message,
@@ -8,7 +7,7 @@ import {
   Select,
   Popconfirm,
 } from 'antd'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './index.less'
 import {
   DeleteOutlined,
