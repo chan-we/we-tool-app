@@ -61,6 +61,17 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ]
+    },
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/chan-we/we-tool-app/releases/download/app-v{{current_version}}/we-tool_{{current_version}}_{{arch}}-setup.exe"
+      ],
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZDMEFGOEU4M0Q2NUFDREIKUldUYnJHVTk2UGdLYk10eTdIb3RodEJ3eE9NS3NzcHdia0ZWRHloQk5DY0RhVXk3ZjN1d094NEUK",
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }
