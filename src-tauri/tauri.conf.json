@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "we-tool",
-    "version": "0.0.3"
+    "version": "0.0.4"
   },
   "tauri": {
     "allowlist": {
@@ -48,7 +48,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost; media-src 'self' data: blob: *;"
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost; media-src 'self' data: blob: *; style-src 'self' 'unsafe-inline';"
     },
     "bundle": {
       "active": true,
