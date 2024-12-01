@@ -51,7 +51,7 @@ jobs:
       - name: install frontend dependencies
         run: |
           npm i -g pnpm          
-          pnpm install 
+          pnpm install
 
       - uses: tauri-apps/tauri-action@v0.5.4
         env:
@@ -65,3 +65,7 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+      - name: Upload assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 运行自己的脚本
+        run: node scripts/updater.mjs
