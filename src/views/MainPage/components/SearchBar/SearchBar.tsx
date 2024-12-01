@@ -36,7 +36,7 @@ const SearchBar: React.FC<{
       <Button type='primary' onClick={handleClick}>
         搜索
       </Button>
-      <Button icon={<FolderOpenOutlined />} onClick={selectWEFolder} />,
+      <Button icon={<FolderOpenOutlined />} onClick={selectWEFolder} />
     </Space.Compact>
   )
 }
