@@ -34,6 +34,7 @@ import { WebviewWindow } from '@tauri-apps/api/window'
 import { useSelector } from 'react-redux'
 import OptionBar from './components/OptionBar'
 import SearchBar from './components/SearchBar'
+import SettingMenu from './components/SettingMenu/SettingMenu'
 
 const MainPage = () => {
   // const searchDirPath = useRef('')
@@ -380,6 +381,9 @@ const MainPage = () => {
           style={{ width: '100%' }}
         />
       </Checkbox.Group>
+      <div className='main-page-setting'>
+        <SettingMenu />
+      </div>
     </div>
   )
 }

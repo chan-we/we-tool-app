@@ -1,5 +1,5 @@
 import { FolderOpenOutlined } from '@ant-design/icons'
-import { Button, Input } from 'antd'
+import { Button, Input, Space } from 'antd'
 import { useState } from 'react'
 import { open } from '@tauri-apps/api/dialog'
 
@@ -22,7 +22,7 @@ const SearchBar: React.FC<{
   }
 
   return (
-    <Input.Group compact className='main-page-input'>
+    <Space.Compact className='main-page-input'>
       <Input
         type='text'
         style={{ width: 'calc(100% - 200px)' }}
@@ -37,7 +37,7 @@ const SearchBar: React.FC<{
         搜索
       </Button>
       <Button icon={<FolderOpenOutlined />} onClick={selectWEFolder} />,
-    </Input.Group>
+    </Space.Compact>
   )
 }
 
