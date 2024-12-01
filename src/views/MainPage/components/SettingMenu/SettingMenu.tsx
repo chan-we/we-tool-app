@@ -1,5 +1,4 @@
 import { SettingOutlined } from '@ant-design/icons'
-import { emit } from '@tauri-apps/api/event'
 import { Dropdown, MenuProps } from 'antd'
 import useUpdate from '@/hooks/useUpdate'
 
