@@ -2,7 +2,6 @@ import { FolderOpenOutlined } from '@ant-design/icons'
 import { Button, Input } from 'antd'
 import { useState } from 'react'
 import { open } from '@tauri-apps/api/dialog'
-import './index.less'
 
 const SearchBar: React.FC<{
   onChange: (v: string) => void
